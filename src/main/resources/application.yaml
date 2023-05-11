@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/hearts
     username: postgres
-    password: Rajas@1998
+    password: postgres
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -16,10 +16,6 @@ spring:
 
 jwt:
   secret-key: 50645367556B58703273357638792F423F4528482B4D6251655468576D597133
-
-client:
-  url: https://localhost:4200
-  api-url-pattern: /api/v1/**
 
 server:
   ssl:
