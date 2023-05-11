@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/hearts
     username: postgres
-    password: postgres
+    password: Rajas@1998
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -18,5 +18,15 @@ jwt:
   secret-key: 50645367556B58703273357638792F423F4528482B4D6251655468576D597133
 
 client:
-  url: http://localhost:4200
+  url: https://localhost:4200
   api-url-pattern: /api/v1/**
+
+server:
+  ssl:
+    enabled: true
+    key-store-type: PKCS12
+    key-store: src/main/resources/keystore/hearts-tls.p12
+    key-store-password: hearts@123
+    key-alias: hearts-tls
+    key-password: hearts@123
+  port: 8080
