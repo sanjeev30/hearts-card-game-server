@@ -22,6 +22,7 @@ public class Player implements UserDetails {
     @Id
     @GeneratedValue
     private Integer id;
+    @Column(unique = true)
     private String email;
     private String firstName;
     private String lastName;

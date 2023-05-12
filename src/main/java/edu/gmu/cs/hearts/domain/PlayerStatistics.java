@@ -16,14 +16,16 @@ public class PlayerStatistics {
     @Id
     @Column(name = "player_id")
     private Integer playerId;
+    
+    private Integer gamesPlayed = 0;
 
     private Integer roundsWon = 0;
 
     private Integer roundsLost = 0;
 
-    private Integer gameWon = 0;
+    private Integer gamesWon = 0;
 
-    private Integer gameLost = 0;
+    private Integer gamesLost = 0;
 
     @OneToOne
     @JoinColumn(referencedColumnName = "id", nullable = false, insertable = false, updatable = false)

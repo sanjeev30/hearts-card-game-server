@@ -1,16 +1,40 @@
 package edu.gmu.cs.hearts.controller;
 
+import edu.gmu.cs.hearts.domain.Game;
+import edu.gmu.cs.hearts.model.GameInstance;
+import edu.gmu.cs.hearts.model.JoinGameRequest;
+import edu.gmu.cs.hearts.service.GameService;
+import edu.gmu.cs.hearts.service.JWTService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/demo")
+@RequestMapping("/api/v1/game")
+@RequiredArgsConstructor
 public class GameController {
 
-    @GetMapping
-    public ResponseEntity<String> hello() {
-        return ResponseEntity.ok("Hello");
+    private final GameService gameService;
+    private final JWTService jwtService;
+
+    @PostMapping("/create")
+    public ResponseEntity<Game> createNewGame() {
+        return ResponseEntity.ok(gameService.createGame());
+    }
+
+    @PostMapping("/join")
+    public ResponseEntity<GameInstance> joinGame(@RequestHeader Map<String, String> header, @RequestBody JoinGameRequest request) throws Exception {
+        String token = header.get("authorization").substring(7);
+        String email = jwtService.extractPlayerEmail(token);
+        return ResponseEntity.ok(gameService.joinGame(email, request.getGameId()));
+    }
+
+    @PostMapping("/joinAnyGame")
+    public ResponseEntity<GameInstance> joinAnyGame(@RequestHeader Map<String, String> header) throws Exception {
+        String token = header.get("authorization").substring(7);
+        String email = jwtService.extractPlayerEmail(token);
+        return ResponseEntity.ok(gameService.joinAnyGame(email));
     }
 }

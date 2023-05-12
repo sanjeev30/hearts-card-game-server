@@ -1,11 +1,13 @@
 package edu.gmu.cs.hearts.service;
 
 import edu.gmu.cs.hearts.domain.Player;
+import edu.gmu.cs.hearts.domain.PlayerStatistics;
 import edu.gmu.cs.hearts.domain.Role;
 import edu.gmu.cs.hearts.model.AuthenticationRequest;
 import edu.gmu.cs.hearts.model.AuthenticationResponse;
 import edu.gmu.cs.hearts.model.RegisterRequest;
 import edu.gmu.cs.hearts.repository.PlayerRepository;
+import edu.gmu.cs.hearts.repository.PlayerStatisticsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +22,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final PlayerStatisticsRepository playerStatisticsRepository;
 
     public AuthenticationResponse register(RegisterRequest request) {
         var player = Player.builder()
@@ -30,6 +33,15 @@ public class AuthenticationService {
                 .role(Role.PLAYER)
                 .build();
         playerRepository.save(player);
+        var playerStatistics = PlayerStatistics.builder()
+                .playerId(player.getId())
+                .gamesPlayed(1)
+                .gamesWon(1)
+                .gamesLost(1)
+                .roundsWon(1)
+                .roundsLost(1)
+                .build();
+        playerStatisticsRepository.save(playerStatistics);
         var jwtToken = jwtService.generateToken(player);
         return AuthenticationResponse
                 .builder()

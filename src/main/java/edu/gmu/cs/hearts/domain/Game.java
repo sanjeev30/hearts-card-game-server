@@ -1,15 +1,13 @@
 package edu.gmu.cs.hearts.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.Set;
 
 @Entity
 @Data
@@ -17,7 +15,9 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Game {
+
     @Id
+    @GeneratedValue
     private Integer id;
 
     private Date startTime;
@@ -26,4 +26,5 @@ public class Game {
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
 }
