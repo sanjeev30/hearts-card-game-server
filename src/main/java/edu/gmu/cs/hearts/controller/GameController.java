@@ -5,6 +5,7 @@ import edu.gmu.cs.hearts.domain.card.Card;
 import edu.gmu.cs.hearts.domain.card.Deck;
 import edu.gmu.cs.hearts.model.GameInstance;
 import edu.gmu.cs.hearts.model.GameRequest;
+import edu.gmu.cs.hearts.model.PlayCardRequest;
 import edu.gmu.cs.hearts.service.GameService;
 import edu.gmu.cs.hearts.service.JWTService;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,12 @@ public class GameController {
         String token = header.get("authorization").substring(7);
         String email = jwtService.extractPlayerEmail(token);
         return ResponseEntity.ok(gameService.startGame(email, gameRequest.getGameId()));
+    }
+
+    @PostMapping("/playCard")
+    public ResponseEntity<GameInstance> playCard(@RequestHeader Map<String, String> header, @RequestBody PlayCardRequest playCardRequest) throws Exception {
+        String token = header.get("authorization").substring(7);
+        String email = jwtService.extractPlayerEmail(token);
+        return ResponseEntity.ok(gameService.playCard(email, playCardRequest.getGameId(), playCardRequest.getCard()));
     }
 }

@@ -1,6 +1,7 @@
 package edu.gmu.cs.hearts.repository;
 
 import edu.gmu.cs.hearts.domain.GamePlayer;
+import edu.gmu.cs.hearts.domain.PlayerDirection;
 import edu.gmu.cs.hearts.domain.id.GamePlayerId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,4 +12,6 @@ public interface GamePlayerRepository extends JpaRepository<GamePlayer, GamePlay
     Integer countGamePlayerByGameIdEquals(Integer gameId);
 
     List<GamePlayer> findGamePlayerByGameId(Integer gameId);
+
+    GamePlayer findGamePlayerByGameIdAndDirection(Integer gameId, PlayerDirection direction);
 }

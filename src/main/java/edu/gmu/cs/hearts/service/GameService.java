@@ -1,14 +1,13 @@
 package edu.gmu.cs.hearts.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.gmu.cs.hearts.domain.*;
 import edu.gmu.cs.hearts.domain.card.Card;
 import edu.gmu.cs.hearts.domain.card.Deck;
+import edu.gmu.cs.hearts.domain.card.Rank;
+import edu.gmu.cs.hearts.domain.card.Suit;
 import edu.gmu.cs.hearts.model.GameInstance;
 import edu.gmu.cs.hearts.model.PlayerInstance;
-import edu.gmu.cs.hearts.repository.GamePlayerRepository;
-import edu.gmu.cs.hearts.repository.GameRepository;
-import edu.gmu.cs.hearts.repository.PlayerRepository;
+import edu.gmu.cs.hearts.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +25,8 @@ public class GameService {
     private final GameRepository gameRepository;
     private final GamePlayerRepository gamePlayerRepository;
     private final PlayerRepository playerRepository;
+    private final GameMoveRepository gameMoveRepository;
+    private final HandWinnerRepository handWinnerRepository;
 
     public Game createGame() {
         var game = Game.builder()
@@ -61,12 +63,12 @@ public class GameService {
             game.setStatus(Status.READY);
             gameRepository.save(game);
         }
-        log.info("Joined", joinedPlayer.toString());
         return getGameInstance(playerEmail, gameId);
     }
 
     public GameInstance getGameInstance(String email, Integer gameId) {
         GameInstance gameInstance = new GameInstance();
+        gameInstance.setCurrentMove(0);
         Game game = gameRepository.findById(gameId).get();
         gameInstance.setGameId(game.getId());
         List<GamePlayer> players = gamePlayerRepository.findGamePlayerByGameId(gameId);
@@ -77,7 +79,11 @@ public class GameService {
                     .lastName(playerData.getLastName())
                     .playerId(playerData.getId())
                     .score(player.getScore())
+                    .gameMoves(gameMoveRepository.getGameMovesByGameIdAndPlayerId(gameId, player.getPlayerId()))
                     .build();
+            if(gameInstance.getCurrentMove() < playerInGame.getGameMoves().size()) {
+                gameInstance.setCurrentMove(playerInGame.getGameMoves().size());
+            }
             if(playerData.getEmail().equals(email)) {
                 gameInstance.setCards(player.getCards());
                 gameInstance.setPlayerId(playerData.getId());
@@ -96,6 +102,7 @@ public class GameService {
             }
         }
         gameInstance.setGameStatus(game.getStatus());
+        gameInstance.setHandWinners(handWinnerRepository.getHandWinnersByGameId(gameId));
         return gameInstance;
     }
 
@@ -139,4 +146,122 @@ public class GameService {
         return String.join("," , playerCards);
     }
 
+    public GameInstance playCard(String email, Integer gameId, String card) throws Exception {
+        Game game = gameRepository.findById(gameId).get();
+        Card playedCard = new Card(Suit.valueOf(card.split("-")[0]), Rank.valueOf(card.split("-")[1]));
+        if(!game.getStatus().equals(Status.IN_PROGRESS)) {
+            throw new Exception("Game is not in progress");
+        }
+        Player player = playerRepository.findByEmail(email).get();
+        GamePlayer currentGamePlayer = gamePlayerRepository.findGamePlayerByGameIdAndDirection(gameId, game.getCurrentDirection());
+        if(currentGamePlayer == null || currentGamePlayer.getPlayerId() != player.getId()) {
+            throw new Exception("Player Move Not Allowed");
+        } else {
+            String availableCards = currentGamePlayer.getCards();
+            if(availableCards.indexOf(card) < 0) {
+                throw new Exception("Invalid Card");
+            } else {
+                if(game.getCurrentDirection().equals(PlayerDirection.NORTH)) {
+                    game.setCurrentSuit(playedCard.getSuit());
+                    gameRepository.save(game);
+                } else {
+                    Suit currentSuit = game.getCurrentSuit();
+                    if(!currentSuit.equals(playedCard.getSuit()) && availableCards.indexOf(currentSuit.toString()) >= 0) {
+                        throw new Exception("Card Move Not Allowed");
+                    }
+                }
+                List<String> cards = List.of(availableCards.split(","));
+                List<String> newCards = new ArrayList<>();
+                for(String c: cards) {
+                    if(!c.equals(card)){
+                        newCards.add(c);
+                    }
+                }
+                currentGamePlayer.setCards(String.join(",", newCards));
+                gamePlayerRepository.save(currentGamePlayer);
+                Integer moveCount = gameMoveRepository.countAllByGameIdAndPlayerId(game.getId(), currentGamePlayer.getPlayerId());
+                GameMove gameMove = GameMove
+                        .builder()
+                        .moveNo(moveCount + 1)
+                        .gameId(game.getId())
+                        .playerId(currentGamePlayer.getPlayerId())
+                        .cardPlayed(card)
+                        .movePoints(0)
+                        .build();
+                gameMoveRepository.save(gameMove);
+                if(game.getCurrentDirection().equals(PlayerDirection.NORTH)) {
+                    game.setCurrentDirection(PlayerDirection.EAST);
+                } else if(game.getCurrentDirection().equals(PlayerDirection.EAST)) {
+                    game.setCurrentDirection(PlayerDirection.SOUTH);
+                } else if(game.getCurrentDirection().equals(PlayerDirection.SOUTH)) {
+                    game.setCurrentDirection(PlayerDirection.WEST);
+                } else if(game.getCurrentDirection().equals(PlayerDirection.WEST)) {
+                    game.setCurrentDirection(PlayerDirection.NORTH);
+                    Integer moveNo = gameMoveRepository.maxMoveNumber(game.getId());
+                    List<GameMove> gameMoves = gameMoveRepository.getGameMovesByGameIdAndMoveNo(game.getId(), moveNo);
+                    Integer handWinner = getHandWinnerFromGameMoves(gameMoves, game.getCurrentSuit());
+                    HandWinner handWinnerObject = HandWinner.builder()
+                            .gameId(gameId)
+                            .points(getPointsFromGameMoves(gameMoves))
+                            .playerId(handWinner)
+                            .moveNo(moveNo)
+                            .build();
+                    handWinnerRepository.save(handWinnerObject);
+                }
+                gameRepository.save(game);
+                return getGameInstance(email, gameId);
+            }
+            // Remove that specific card from the game player object and store it in database
+            // Move the control of current game player to next player and save in the database
+            // Store the move in the game move database;
+        }
+    }
+
+    public Integer getHandWinnerFromGameMoves(List<GameMove> gameMoves, Suit currentSuit) {
+        List<GameMove> currentSuitCards = gameMoves.stream().filter(gameMove -> {
+            return Suit.valueOf(gameMove.getCardPlayed().split("-")[0]).equals(currentSuit);
+        }).collect(Collectors.toList());
+        Integer winnerId = currentSuitCards.get(0).getPlayerId();
+        Integer rank = getRank(currentSuitCards.get(0).getCardPlayed());
+        for(GameMove move: currentSuitCards) {
+            if(getRank(move.getCardPlayed()) > rank) {
+                rank = getRank(move.getCardPlayed());
+                winnerId = move.getPlayerId();
+            }
+        }
+        return winnerId;
+    }
+
+    public Integer getPointsFromGameMoves(List<GameMove> gameMoves) {
+        Integer totalPoints = 0;
+        for(GameMove move: gameMoves) {
+            Card card = new Card(Suit.valueOf(move.getCardPlayed().split("-")[0]), Rank.valueOf(move.getCardPlayed().split("-")[1]));
+            if(card.getSuit().equals(Suit.HEARTS)) {
+                totalPoints++;
+            } else if(card.getSuit().equals(Suit.SPADES) && card.getRank().equals(Rank.QUEEN)) {
+                totalPoints += 13;
+            }
+        }
+        return totalPoints;
+    }
+
+    public int getRank(String card) {
+        Rank rank = Rank.valueOf(card.split("-")[1]);
+        switch (rank) {
+            case ACE: return 13;
+            case KING: return 12;
+            case QUEEN: return 11;
+            case JACK: return 10;
+            case TEN: return 9;
+            case NINE: return 8;
+            case EIGHT: return 7;
+            case SEVEN: return 6;
+            case SIX: return 5;
+            case FIVE: return 4;
+            case FOUR: return 3;
+            case THREE: return 2;
+            case TWO: return 1;
+            default: return 0;
+        }
+    }
 }

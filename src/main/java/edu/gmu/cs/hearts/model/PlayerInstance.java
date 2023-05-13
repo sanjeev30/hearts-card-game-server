@@ -1,9 +1,12 @@
 package edu.gmu.cs.hearts.model;
 
+import edu.gmu.cs.hearts.domain.GameMove;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
@@ -17,4 +20,5 @@ public class PlayerInstance {
     private Integer score;
     private Boolean passing;
     private Boolean currentPlayer;
+    private List<GameMove> gameMoves;
 }

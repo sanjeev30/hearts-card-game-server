@@ -1,5 +1,6 @@
 package edu.gmu.cs.hearts.domain;
 
+import edu.gmu.cs.hearts.domain.card.Suit;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,5 +31,8 @@ public class Game {
 
     @Enumerated(EnumType.ORDINAL)
     private PlayerDirection currentDirection;
+
+    @Enumerated(EnumType.STRING)
+    private Suit currentSuit;
 
 }
