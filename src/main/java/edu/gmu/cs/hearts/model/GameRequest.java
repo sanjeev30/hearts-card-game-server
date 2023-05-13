@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class JoinGameRequest {
+public class GameRequest {
     private Integer gameId;
 }

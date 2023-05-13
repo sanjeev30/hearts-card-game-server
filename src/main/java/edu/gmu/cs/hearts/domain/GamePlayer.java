@@ -31,4 +31,10 @@ public class GamePlayer {
 
     @Enumerated(EnumType.ORDINAL)
     private PlayerDirection direction;
+
+    private String cards;
+
+    private String passedCards;
+
+    private Integer score;
 }

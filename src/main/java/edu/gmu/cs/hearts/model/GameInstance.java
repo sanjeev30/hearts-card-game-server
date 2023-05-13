@@ -12,12 +12,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class GameInstance {
-
     private Integer gameId;
-    private Player northPlayer;
-    private Player eastPlayer;
-    private Player southPlayer;
-    private Player westPlayer;
+    private Integer playerId;
+    private PlayerInstance northPlayer;
+    private PlayerInstance eastPlayer;
+    private PlayerInstance southPlayer;
+    private PlayerInstance westPlayer;
     private Status gameStatus;
+    private boolean heartBreak;
+    private String cards;
 
 }
