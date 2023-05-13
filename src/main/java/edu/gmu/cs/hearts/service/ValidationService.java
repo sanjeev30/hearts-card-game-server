@@ -30,8 +30,8 @@ public class ValidationService {
         if (request.getPassword() == null || request.getPassword().isEmpty()) {
             throw new ValidationException("Password is required");
         }
-        if (!request.getPassword().matches("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")) {
-            throw new ValidationException("Password must contain at least 8 characters, including at least one digit, one uppercase letter, one lowercase letter, and one special character (@#$%^&+=)");
+        if (!request.getPassword().matches("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@$%*])(?=\\S+$).{8,}$")) {
+            throw new ValidationException("Password must contain at least 8 characters, including at least one digit, one uppercase letter, one lowercase letter, and one special character (@$%*)");
         }
     }
 
