@@ -38,9 +38,15 @@ public class AuthenticationController {
 
 
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse> authenticate(
+    public ResponseEntity<?> authenticate(
             @RequestBody AuthenticationRequest request
     ) {
+        try {
+            validationService.validateAuthenticationRequest(request);
+        } catch (ValidationException ve) {
+            log.info(ve.getMessage());
+            return ResponseEntity.badRequest().body(ve.getMessage());
+        }
         return ResponseEntity.ok(authenticationService.authenticate(request));
     }
 }

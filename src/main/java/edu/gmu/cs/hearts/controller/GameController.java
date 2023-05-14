@@ -1,8 +1,6 @@
 package edu.gmu.cs.hearts.controller;
 
 import edu.gmu.cs.hearts.domain.Game;
-import edu.gmu.cs.hearts.domain.card.Card;
-import edu.gmu.cs.hearts.domain.card.Deck;
 import edu.gmu.cs.hearts.model.GameInstance;
 import edu.gmu.cs.hearts.model.GameRequest;
 import edu.gmu.cs.hearts.model.PlayCardRequest;
@@ -60,5 +58,12 @@ public class GameController {
         String token = header.get("authorization").substring(7);
         String email = jwtService.extractPlayerEmail(token);
         return ResponseEntity.ok(gameService.playCard(email, playCardRequest.getGameId(), playCardRequest.getCard()));
+    }
+
+    @PostMapping("/notifyGarbagePass")
+    public ResponseEntity<Boolean> updateGarbageCards(@RequestHeader Map<String, String> header, @RequestBody List<String> cards) throws Exception {
+        String token = header.get("authorization").substring(7);
+        String email = jwtService.extractPlayerEmail(token);
+        return ResponseEntity.ok(gameService.updateGarbageCards(email, cards));
     }
 }

@@ -17,6 +17,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -56,6 +58,7 @@ public class GameService {
                         .playerId(player.getId())
                         .gameId(gameId)
                         .direction(direction)
+                        .score(0)
                         .build();
         GamePlayer joinedPlayer = gamePlayerRepository.save(gamePlayer);
         if(joinedPlayer.getDirection().equals(PlayerDirection.WEST)) {
@@ -71,6 +74,7 @@ public class GameService {
         gameInstance.setCurrentMove(0);
         Game game = gameRepository.findById(gameId).get();
         gameInstance.setGameId(game.getId());
+        gameInstance.setCurrentSuit(game.getCurrentSuit());
         List<GamePlayer> players = gamePlayerRepository.findGamePlayerByGameId(gameId);
         for(GamePlayer player: players) {
             Player playerData = playerRepository.findById(player.getPlayerId()).get();
@@ -104,6 +108,15 @@ public class GameService {
         gameInstance.setGameStatus(game.getStatus());
         gameInstance.setHandWinners(handWinnerRepository.getHandWinnersByGameId(gameId));
         return gameInstance;
+    }
+
+    private boolean checkIfAllPlayerPassed(List<GamePlayer> players) {
+        for(GamePlayer gamePlayer: players) {
+            if(gamePlayer.getPassedCards() == null || gamePlayer.getPassedCards().equals("")) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public GameInstance joinAnyGame(String email) throws Exception {
@@ -154,11 +167,11 @@ public class GameService {
         }
         Player player = playerRepository.findByEmail(email).get();
         GamePlayer currentGamePlayer = gamePlayerRepository.findGamePlayerByGameIdAndDirection(gameId, game.getCurrentDirection());
-        if(currentGamePlayer == null || currentGamePlayer.getPlayerId() != player.getId()) {
+        if(currentGamePlayer == null || !currentGamePlayer.getPlayerId().equals(player.getId())) {
             throw new Exception("Player Move Not Allowed");
         } else {
             String availableCards = currentGamePlayer.getCards();
-            if(availableCards.indexOf(card) < 0) {
+            if(!availableCards.contains(card)) {
                 throw new Exception("Invalid Card");
             } else {
                 if(game.getCurrentDirection().equals(PlayerDirection.NORTH)) {
@@ -166,7 +179,7 @@ public class GameService {
                     gameRepository.save(game);
                 } else {
                     Suit currentSuit = game.getCurrentSuit();
-                    if(!currentSuit.equals(playedCard.getSuit()) && availableCards.indexOf(currentSuit.toString()) >= 0) {
+                    if(!currentSuit.equals(playedCard.getSuit()) && availableCards.contains(currentSuit.toString())) {
                         throw new Exception("Card Move Not Allowed");
                     }
                 }
@@ -207,22 +220,21 @@ public class GameService {
                             .moveNo(moveNo)
                             .build();
                     handWinnerRepository.save(handWinnerObject);
+                    GamePlayer handWinnerPlayer = gamePlayerRepository.findGamePlayerByGameIdAndPlayerId(gameId, handWinner);
+                    handWinnerPlayer.setScore(handWinnerPlayer.getScore() + getPointsFromGameMoves(gameMoves));
                 }
                 gameRepository.save(game);
                 return getGameInstance(email, gameId);
             }
-            // Remove that specific card from the game player object and store it in database
-            // Move the control of current game player to next player and save in the database
-            // Store the move in the game move database;
         }
     }
 
     public Integer getHandWinnerFromGameMoves(List<GameMove> gameMoves, Suit currentSuit) {
         List<GameMove> currentSuitCards = gameMoves.stream().filter(gameMove -> {
             return Suit.valueOf(gameMove.getCardPlayed().split("-")[0]).equals(currentSuit);
-        }).collect(Collectors.toList());
+        }).toList();
         Integer winnerId = currentSuitCards.get(0).getPlayerId();
-        Integer rank = getRank(currentSuitCards.get(0).getCardPlayed());
+        int rank = getRank(currentSuitCards.get(0).getCardPlayed());
         for(GameMove move: currentSuitCards) {
             if(getRank(move.getCardPlayed()) > rank) {
                 rank = getRank(move.getCardPlayed());
@@ -233,7 +245,7 @@ public class GameService {
     }
 
     public Integer getPointsFromGameMoves(List<GameMove> gameMoves) {
-        Integer totalPoints = 0;
+        int totalPoints = 0;
         for(GameMove move: gameMoves) {
             Card card = new Card(Suit.valueOf(move.getCardPlayed().split("-")[0]), Rank.valueOf(move.getCardPlayed().split("-")[1]));
             if(card.getSuit().equals(Suit.HEARTS)) {
@@ -247,21 +259,43 @@ public class GameService {
 
     public int getRank(String card) {
         Rank rank = Rank.valueOf(card.split("-")[1]);
-        switch (rank) {
-            case ACE: return 13;
-            case KING: return 12;
-            case QUEEN: return 11;
-            case JACK: return 10;
-            case TEN: return 9;
-            case NINE: return 8;
-            case EIGHT: return 7;
-            case SEVEN: return 6;
-            case SIX: return 5;
-            case FIVE: return 4;
-            case FOUR: return 3;
-            case THREE: return 2;
-            case TWO: return 1;
-            default: return 0;
+        return switch (rank) {
+            case ACE -> 13;
+            case KING -> 12;
+            case QUEEN -> 11;
+            case JACK -> 10;
+            case TEN -> 9;
+            case NINE -> 8;
+            case EIGHT -> 7;
+            case SEVEN -> 6;
+            case SIX -> 5;
+            case FIVE -> 4;
+            case FOUR -> 3;
+            case THREE -> 2;
+            case TWO -> 1;
+            default -> 0;
+        };
+    }
+
+    public Boolean updateGarbageCards(String email, List<String> cards) throws Exception {
+        Player player = playerRepository.findByEmail(email).get();
+        GamePlayer gamePlayer = gamePlayerRepository.findGamePlayerByGameIdAndPlayerId(Integer.valueOf(cards.get(cards.size()-1)), player.getId());
+        String gameCards = gamePlayer.getCards();
+        for(int i=0; i<3; i++) {
+            if(!gameCards.contains(cards.get(i))) {
+                throw new Exception("Invalid Set of Cards for Garbage Pass");
+            }
         }
+        String garbageCards = String.join(",", cards.subList(0, 3));
+        List<String> newCards = new ArrayList<>();
+        for(String card: gameCards.split("-")) {
+            if(!garbageCards.contains(card)) {
+                newCards.add(card);
+            }
+        }
+        gamePlayer.setCards(String.join(",", newCards));
+        gamePlayer.setPassedCards(garbageCards);
+        gamePlayerRepository.save(gamePlayer);
+        return true;
     }
 }

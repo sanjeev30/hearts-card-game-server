@@ -5,10 +5,10 @@ spring:
     password: postgres
     driver-class-name: org.postgresql.Driver
   jpa:
-    hibernate:
-      ddl-auto: create-drop
     database: mysql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
 
 jwt:
   secret-key: 50645367556B58703273357638792F423F4528482B4D6251655468576D597133

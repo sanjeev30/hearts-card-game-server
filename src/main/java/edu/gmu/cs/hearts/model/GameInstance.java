@@ -4,6 +4,7 @@ import edu.gmu.cs.hearts.domain.GameMove;
 import edu.gmu.cs.hearts.domain.HandWinner;
 import edu.gmu.cs.hearts.domain.Player;
 import edu.gmu.cs.hearts.domain.Status;
+import edu.gmu.cs.hearts.domain.card.Suit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,5 +28,6 @@ public class GameInstance {
     private String cards;
     private List<HandWinner> handWinners;
     private Integer currentMove;
+    private Suit currentSuit;
 
 }
