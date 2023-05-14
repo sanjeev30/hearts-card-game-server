@@ -35,11 +35,11 @@ public class AuthenticationService {
         playerRepository.save(player);
         var playerStatistics = PlayerStatistics.builder()
                 .playerId(player.getId())
-                .gamesPlayed(1)
-                .gamesWon(1)
-                .gamesLost(1)
-                .roundsWon(1)
-                .roundsLost(1)
+                .gamesPlayed(0)
+                .gamesWon(0)
+                .gamesLost(0)
+                .roundsWon(0)
+                .roundsLost(0)
                 .build();
         playerStatisticsRepository.save(playerStatistics);
         var jwtToken = jwtService.generateToken(player);
